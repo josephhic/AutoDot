@@ -7,6 +7,10 @@ Created on Thu Jul  4 16:42:32 2019
 
 import numpy as np
 from builtins import super
+import matplotlib.pyplot as plt
+from scipy.optimize import minimize
+from sklearn.neighbors import NearestNeighbors
+
 
 def initialize_sigma2(X, Y):
     (N, D), (M, _)  = X.shape, Y.shape
@@ -254,4 +258,84 @@ class deformable_registration(expectation_maximization_registration):
 
     def registration_parameters(self):
         return self.G, self.W
-  
+
+# Scikit minimizer anisotropic scaling ICP
+
+class anisotropic_scaling_ICP:
+
+    def __init__(self, q, n):
+        self.q = q
+        self.n = n
+
+        self.get_initial_transform()
+
+        print("First transform: ", self.transform)
+
+        self.plot(plot_transform=True)
+
+        # Update point cloud using first transform
+        self.q = self.transform @ self.q
+        self.plot()
+
+        self.iters = 0
+
+
+
+    def get_initial_transform(self):
+        Cq = np.cov(self.q)
+        Cn = np.cov(self.n)
+
+        eig_q = np.linalg.eig(Cq)[0]
+        eig_n = np.linalg.eig(Cn)[0]
+
+        lam = np.sqrt(eig_q)
+        mu = np.sqrt(eig_n)
+
+        self.nu = 1 / len(lam) * np.sum(mu / lam)
+
+        self.delta = 0.1 * self.nu
+
+        s_01 = self.nu
+        s_02 = self.nu
+
+        self.s_low_lim = 0.9 * self.nu
+        self.s_high_lim = 1.1 * self.nu
+
+        self.transform = np.diag([s_01, s_02])
+
+    def iterate(self):
+        self.x_guess = np.diagonal(self.transform)
+        self.get_correspondences()
+        self.res = minimize(self.ls, self.x_guess, method='BFGS')
+        next_transform = np.diag(self.res.x)
+        self.transform = self.transform @ next_transform
+        self.q = next_transform @ self.q
+        self.iters += 1
+
+    def ls(self, s_in):
+        S = np.diag([s_in[0], s_in[1]])
+        output = np.sum(np.linalg.norm((S @ self.q) - self.nns) ** 2)
+        return output
+
+    def plot(self, plot_transform=False):
+        plt.figure()
+        plt.plot(self.n[0, :], self.n[1, :], 'o', label="Reference")
+        plt.plot(self.q[0, :], self.q[1, :], 'o', label="transformed")
+
+        if plot_transform:
+            plt.plot((self.transform @ self.q)[0, :], (self.transform @ self.q)[1, :], 'o', label="initial transform",
+                     alpha=0.6)
+        plt.legend()
+        plt.show()
+
+    def get_correspondences(self):
+        nn = NearestNeighbors(n_neighbors=1, algorithm='auto')
+        nn.fit(self.n.T)
+
+        distances, indices = nn.kneighbors(self.q.T)
+
+        nns = np.array([self.n[:, index[0]] for index in indices]).T
+        self.nns = nns
+
+        # plt.hist(distances)
+        return distances, indices

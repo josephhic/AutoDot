@@ -7,7 +7,7 @@ Created on Thu Jul  4 16:42:32 2019
 
 import numpy as np
 from functools import partial
-from Registration.registration_core import notranslation_affine_registration,simple_affine_registration,deformable_registration
+from Registration.registration_core import notranslation_affine_registration,simple_affine_registration,deformable_registration, anisotropic_scaling_ICP
 
 
 
@@ -53,4 +53,13 @@ def compare_surf_to_hypercube(pointset1,reg_func=notranslation_affine_registrati
     if dirs is None:
         dirs = np.array([-1]*n_samps)
     
-    
+def scaling_registration(pointset1, pointset2):
+
+    icp = anisotropic_scaling_ICP(pointset1, pointset2)
+
+    icp.iterate()
+
+    while icp.res.fun > 10 and icp.iters < 100:
+        icp.iterate()
+
+    return icp.transform
