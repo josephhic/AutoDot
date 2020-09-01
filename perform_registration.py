@@ -8,7 +8,7 @@ Created on Thu Jul  4 16:42:32 2019
 import numpy as np
 from functools import partial
 from Registration.registration_core import notranslation_affine_registration,simple_affine_registration,deformable_registration, anisotropic_scaling_ICP
-
+import matplotlib.pyplot as plt
 
 
 def error(iteration, error, X, Y):
@@ -59,7 +59,13 @@ def scaling_registration(pointset1, pointset2):
 
     icp.iterate()
 
-    while icp.res.fun > 10 and icp.iters < 100:
+    # TODO: Use convergence not absolute error
+
+    while icp.res.fun > 0.05 and icp.iters < 500:
         icp.iterate()
+
+    plt.figure()
+    plt.plot(icp.error_track)
+    plt.show()
 
     return icp.transform

@@ -4,7 +4,7 @@ import time
 import numpy as np
 from collections import deque
 import warnings
-from .BO_common import lhs_hypersphere, random_hypersphere, random_hypercube
+from .BO_common import lhs_hypersphere, random_hypersphere, random_hypercube, directed_random_hypercube
 
 class Gaussian_proposal_move(object):
     def __init__(self, cov=1.0E-2):
@@ -305,3 +305,13 @@ def get_full_data(u_all, tester, step_back, origin=0.0, penalty_non_poff=0.0, do
     d_all = np.array(d_all)
     poff_all = np.array(poff_all)
     return u_all, r_all, d_all, poff_all, detected_all, time_all, extra_meas_all
+
+# JDH addition
+def directed_random_points_inside(ndim, num_samples, gp_r, origin, lb, ub, directions):
+    samples = directed_random_hypercube(lb, ub, num_samples, directions)
+    print(samples)
+    if gp_r.gp.model is not None:
+        samples = project_points_to_inside(samples, gp_r, origin, 0.99)
+
+    return samples
+

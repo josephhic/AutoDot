@@ -8,7 +8,7 @@ from .GPy_wrapper import GPyWrapper_Classifier as GPC
 from . import GP_util
 import numpy as np
 import multiprocessing 
-from ...main_utils.dict_util import Tuning_dict
+from main_utils.dict_util import Tuning_dict
 
 class GP_base():
     def __init__(self,n,bound,origin,configs,GP_type=False):

@@ -7,6 +7,7 @@ Created on Mon Mar 23 13:17:50 2020
 """
 
 from . import utils
+import numpy as np
 import matplotlib.pyplot as plt
 
 def show_dummy_device(device,configs,save=True):
@@ -56,3 +57,8 @@ def show_dev_with_points(device, configs, points, save=True):
     plt.show()
     # plt.pause(10)
 
+def error(t, point, optimiser):
+    val = np.linalg.norm(optimiser.X_0 + (t * optimiser.v) - point)
+    # print(val)
+
+    return val

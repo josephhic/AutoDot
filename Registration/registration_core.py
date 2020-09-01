@@ -263,27 +263,31 @@ class deformable_registration(expectation_maximization_registration):
 
 class anisotropic_scaling_ICP:
 
-    def __init__(self, q, n):
-        self.q = q
-        self.n = n
+    def __init__(self, mover, source):
+        self.mover = mover
+        self.source = source
+
+        self.error_track = []
 
         self.get_initial_transform()
 
+
+
         print("First transform: ", self.transform)
 
-        self.plot(plot_transform=True)
+        #self.plot(plot_transform=True)
 
         # Update point cloud using first transform
-        self.q = self.transform @ self.q
-        self.plot()
+        self.mover = self.transform @ self.mover
+        #self.plot()
 
         self.iters = 0
 
 
 
     def get_initial_transform(self):
-        Cq = np.cov(self.q)
-        Cn = np.cov(self.n)
+        Cq = np.cov(self.mover)
+        Cn = np.cov(self.source)
 
         eig_q = np.linalg.eig(Cq)[0]
         eig_n = np.linalg.eig(Cn)[0]
@@ -307,34 +311,35 @@ class anisotropic_scaling_ICP:
         self.x_guess = np.diagonal(self.transform)
         self.get_correspondences()
         self.res = minimize(self.ls, self.x_guess, method='BFGS')
+        self.error_track.append(self.res.fun)
         next_transform = np.diag(self.res.x)
         self.transform = self.transform @ next_transform
-        self.q = next_transform @ self.q
+        self.mover = next_transform @ self.mover
         self.iters += 1
 
     def ls(self, s_in):
         S = np.diag([s_in[0], s_in[1]])
-        output = np.sum(np.linalg.norm((S @ self.q) - self.nns) ** 2)
+        output = np.sum(np.linalg.norm((S @ self.mover) - self.nns) ** 2)
         return output
 
     def plot(self, plot_transform=False):
         plt.figure()
-        plt.plot(self.n[0, :], self.n[1, :], 'o', label="Reference")
-        plt.plot(self.q[0, :], self.q[1, :], 'o', label="transformed")
+        plt.plot(self.source[0, :], self.source[1, :], 'o', label="Reference")
+        plt.plot(self.mover[0, :], self.mover[1, :], 'o', label="transformed")
 
         if plot_transform:
-            plt.plot((self.transform @ self.q)[0, :], (self.transform @ self.q)[1, :], 'o', label="initial transform",
+            plt.plot((self.transform @ self.mover)[0, :], (self.transform @ self.mover)[1, :], 'o', label="initial transform",
                      alpha=0.6)
         plt.legend()
         plt.show()
 
     def get_correspondences(self):
         nn = NearestNeighbors(n_neighbors=1, algorithm='auto')
-        nn.fit(self.n.T)
+        nn.fit(self.source.T)
 
-        distances, indices = nn.kneighbors(self.q.T)
+        distances, indices = nn.kneighbors(self.mover.T)
 
-        nns = np.array([self.n[:, index[0]] for index in indices]).T
+        nns = np.array([self.source[:, index[0]] for index in indices]).T
         self.nns = nns
 
         # plt.hist(distances)

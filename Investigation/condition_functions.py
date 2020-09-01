@@ -10,7 +10,16 @@ import pickle
 import numpy as np
 from .scoring.Last_score import final_score_cls
 from skimage.feature import blob_log
+
 import time
+
+import logging
+
+logging.basicConfig(format='%(asctime)s.%(msecs)03d  {%(module)s} [%(funcName)s] -- %(levelname)s: %(message)s',
+                    datefmt='%H:%M:%S',
+                    level=logging.DEBUG)
+log = logging.getLogger(__name__)
+
 
 def mock_peak_check(anchor,minc,maxc,configs,**kwags):
     a = configs.get('a',None)
@@ -38,7 +47,24 @@ def mock_score_func(anchor,minc,maxc,configs,**kwags):
     print(score)
     return score, False, None
         
-    
+
+# Peaks = Fake_CP object list
+def fake_peak_check(peaks, point):
+    cp = np.any(np.array([peak.check_cp(point) for peak in peaks]))
+    log.info('Fake CP found: {}'.format(cp))
+    return cp, cp, None
+
+
+def sub_peak_check(start_params, peaks, point):
+    print(point, start_params)
+    point = list(point) + list(start_params)
+    print("Point in consideration: ", point)
+    cp = np.any(np.array([peak.check_cp(point) for peak in peaks]))
+    log.info('Fake CP found: {}'.format(cp))
+    return cp, cp, None
+
+
+
 
 def check_nothing(trace,minc,maxc,configs,**kwags):
     output = configs.get('output',False)

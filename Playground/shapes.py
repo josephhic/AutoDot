@@ -114,8 +114,11 @@ class Crosstalk_matrix_box:
 
         self.max = np.array(max)
 
-        # self.matrix = self.define_crosstalk_matrix(self.ndim, self.mean, self.stdev)
+        self.matrix = self.define_crosstalk_matrix(self.ndim, self.mean, self.stdev)
 
+
+
+        """
         print("Matrix not randomly generated. Change in Playground/shapes.py")
         self.matrix = np.array([[1.00000000e+00, 2.25765077e-01, 1.25099259e-03, 8.05792338e-08,
                                  9.45403448e-13],
@@ -127,6 +130,7 @@ class Crosstalk_matrix_box:
                                  2.73003173e-01],
                                 [4.61575699e-13, 1.89962878e-08, 3.65315897e-04, 3.68532330e-01,
                                  1.00000000e+00]])
+        """
 
     def __call__(self, x):
         x = np.array(x)

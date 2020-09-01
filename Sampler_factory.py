@@ -1,16 +1,16 @@
 import time
 import multiprocessing
 from pathlib import Path
-from .main_utils.dict_util import Tuning_dict
-from .main_utils.utils import Timer
+from main_utils.dict_util import Tuning_dict
+from main_utils.utils import Timer
 import numpy as np
 
-from .Sampling.gp import util
-from .Sampling.test_common import Tester
-from .Sampling.BO_common import random_hypersphere
-from .Sampling.gp.GP_models import GPC_heiracical, GP_base
+from Sampling.gp import util
+from Sampling.test_common import Tester
+from Sampling.BO_common import random_hypersphere
+from Sampling.gp.GP_models import GPC_heiracical, GP_base
 
-from .Sampling import random_walk as rw
+from Sampling import random_walk as rw
 
 
 
@@ -35,12 +35,10 @@ class Base_Sampler(object):
         self.save_dir.mkdir(exist_ok=True) #nn
     
         #Unpack control classes/functions
-        
-        
+
         self.t.add(**configs['general'])
         self.t.add(**get_real_bounds(*self.t.get('origin','bound')))
 
-        
         self.t.add(n=len(self.t['origin']))
     
         self.set_detector_configs(configs['detector'])
@@ -62,9 +60,7 @@ class Base_Sampler(object):
             self.maxc, self.minc = get_current_domain(*self.t.get('jump', 'measure', 'origin', 'bound'))
         else:
             self.maxc,self.minc = configs.get('maxc',None),configs.get('minc',None)
-        
-        #print(minc,maxc)
-    
+
         p_low_thresh,p_high_thresh = configs['th_low'],configs['th_high']
         
         threshold_low =  self.minc + ((self.minc+self.maxc)*p_low_thresh)
@@ -120,7 +116,7 @@ class Paper_sampler(Base_Sampler):
         do_gpr_p1, do_gpc_p1 = (i-1>self.t['gpr_start']) and self.t['gpr_on'], (i-1>self.t['gpc_start']) and self.t['gpc_on']
         print("GPR:",do_gpr,"GPC:",do_gpc,"prune:",do_pruning,"GPR1:",do_gpr_p1,"GPC1:",do_gpc_p1,"Optim:",do_optim)
         #pick a uvec and start sampling
-        u, r_est = select_point(self.gpr, self.gpc, *self.t.get('origin', 'boundary_points', 'vols_pinchoff', 'directions'), do_gpr_p1, do_gpc_p1)
+        u, r_est = select_point(self.gpr, self.gpc, *self.t.get('origin', 'boundary_points', 'vols_pinchoff', 'directions', 'd_tooclose'), do_gpr_p1, do_gpc_p1)
         self.timer.logtime()
         self.sampler_hook = start_sampling(self.gpr, *self.t.get('samples', 'origin', 'real_ub', 'real_lb',
                                              'directions', 'n_part', 'sigma', 'max_steps'),sampler_hook=self.sampler_hook) if do_gpr_p1 else None
@@ -161,7 +157,171 @@ class Paper_sampler(Base_Sampler):
         return self.t.getd(*self.t['verbose'])
     
     
-    
+class Base_sub_sampler(Base_Sampler):
+    # choose 'general' or 'subtune' or whatever to select which configs are loaded
+    def __init__(self, configs, subsample_config):
+
+        self.t = Tuning_dict(configs)
+
+        #self.t = Tuning_dict(configs['subsample'])
+
+
+        self.all_data = []
+
+        # TODO: This will overwrite as there will always be multiple subtunes
+        self.t.add(all_data=[], file_name="subtuning.pkl", iterc=0)
+
+        self.config(configs, subsample_config)
+
+    def config(self, configs, subsample_config):
+
+        self.t['iter'], self.iter = 0, 0  # nn
+
+        # Create the save directory
+        self.save_dir = Path(configs['save_dir'])  # nn
+        self.save_dir.mkdir(exist_ok=True)  # nn
+
+        # Unpack control classes/functions
+
+        self.t.add(**configs[subsample_config])
+        self.t.add(**get_real_bounds(*self.t.get('sub_origin', 'sub_bound')))
+
+        self.t.add(n=len(self.t['sub_origin']))
+
+        self.set_detector_configs(configs['detector'])
+        self.timer = Timer()
+
+        self.investigation_stage = configs['investigation_stage_class']
+        self.do_extra_meas = lambda vols, th: self.investigation_stage.do_extra_measure(vols, self.minc, self.maxc,
+                                                                                        score_thresh=th)
+
+        self.t.add(do_extra_meas=self.do_extra_meas)
+
+    def set_detector_configs(self, configs):
+
+        if configs.get('minc', None) is None:
+            self.maxc, self.minc = get_current_domain(*self.t.get('jump', 'measure', 'sub_origin', 'sub_bound'))
+        else:
+            self.maxc, self.minc = configs.get('maxc', None), configs.get('minc', None)
+
+        # print(minc,maxc)
+
+        p_low_thresh, p_high_thresh = configs['th_low'], configs['th_high']
+
+        threshold_low = self.minc + ((self.minc + self.maxc) * p_low_thresh)
+        threshold_high = self.minc + ((self.minc + self.maxc) * p_high_thresh)
+
+        detector_pinchoff = util.PinchoffDetectorThreshold(threshold_low)
+        detector_conducting = util.ConductingDetectorThreshold(threshold_high)
+        self.tester = Tester(*self.t.get('jump', 'measure', 'real_lb', 'real_ub'), detector_pinchoff,
+                             d_r=configs['d_r'], len_after_pinchoff=configs['len_after_poff'], logging=True,
+                             detector_conducting=detector_conducting)
+
+
+
+
+class Subsampler(Base_sub_sampler):
+
+    # basically wants to be the same as a normal sampler but with specific sub directions only (and specified origin)
+
+    def __init__(self, configs, subsample_config, origin):
+        super(Subsampler, self).__init__(configs, subsample_config)
+
+        print("Subsampler initialised")
+        self.sampler_hook = None  # bodge
+
+        self.t.add(samples=None, point_selected=None, boundary_points=[],
+                   vols_poff=[], detected=[], vols_poff_axes=[], poff=[], poff_traces=[],
+                   all_v=[], vols_pinchoff=[], d_vec=[], poff_vec=[], meas_each_axis=[], vols_each_axis=[],
+                   extra_measure=[],
+                   vols_pinchoff_axes=[], vols_detected_axes=[], changed_origin=[], conditional_idx=[], r_vals=[])
+
+        self.t.add(d_r=self.t['detector']['d_r'])  # bodge
+
+        if origin is not None:
+            self.t.pop('sub_origin')
+            self.t['sub_origin'] = origin
+
+            print(self.t['sub_origin'])
+
+
+        self.gpr = GP_base(*self.t.get('n', 'sub_bound', 'sub_origin'), self.t['gpr'])
+
+        gpc_list = self.t['gpc']['gpc_list']
+        gpc_configs = self.t['gpc']['configs']
+
+        if not isinstance(gpc_configs, list):
+            num_gpc = np.sum(gpc_list)
+            gpc_configs = [gpc_configs] * num_gpc
+
+        self.gpc = GPC_heiracical(*self.t.get('n', 'sub_bound', 'sub_origin'), gpc_configs)
+
+        self.t.add(**configs['gpr'], **configs['gpc'], **configs['sampling'], **configs['pruning'])
+
+    def do_iter(self):
+
+        i = self.t['iter']
+        self.timer.start()
+
+        th_score = 0.01
+
+        do_optim = (i % 11 == 0) and (i > 0)
+        do_gpr, do_gpc, do_pruning = (i > self.t['gpc_start']) and self.t['gpc_on'], (i > self.t['gpr_start']) and \
+                                     self.t['gpr_on'], (self.t['pruning_stop'] > i) and self.t['pruning_on']
+        do_gpr_p1, do_gpc_p1 = (i - 1 > self.t['gpr_start']) and self.t['gpr_on'], (i - 1 > self.t['gpc_start']) and \
+                               self.t['gpc_on']
+        print("GPR:", do_gpr, "GPC:", do_gpc, "prune:", do_pruning, "GPR1:", do_gpr_p1, "GPC1:", do_gpc_p1, "Optim:",
+              do_optim)
+
+        # pick a uvec and start sampling
+        u, r_est = select_point(self.gpr, self.gpc,
+                                *self.t.get('sub_origin', 'boundary_points', 'vols_pinchoff', 'sub_directions'), do_gpr_p1,
+                                do_gpc_p1)
+        print("u: ", u)
+        self.timer.logtime()
+        self.sampler_hook = start_sampling(self.gpr, *self.t.get('samples', 'sub_origin', 'real_ub', 'real_lb',
+                                                                 'sub_directions', 'n_part', 'sigma', 'max_steps'),
+                                           sampler_hook=self.sampler_hook) if do_gpr_p1 else None
+
+        r, vols_pinchoff, found, t_firstjump, poff_trace = self.tester.get_r(u, origin=self.t['sub_origin'], r_est=r_est)
+        self.timer.logtime()
+        self.t.app(r_vals=r, vols_pinchoff=vols_pinchoff, detected=found, poff_traces=poff_trace)
+
+        prune_results = self.tester.measure_dvec(
+            vols_pinchoff + (self.t['step_back'] * np.array(self.t['sub_directions']))) if do_pruning else [None] * 4
+        self.timer.logtime()
+        self.t.app(**dict(zip(('d_vec', 'poff_vec', 'meas_each_axis', 'vols_each_axis'), prune_results)))
+
+        print(vols_pinchoff)
+        em_results = self.t['do_extra_meas'](vols_pinchoff, th_score) if found else {'conditional_idx': 0}
+        self.timer.logtime()
+        self.t.app(extra_measure=em_results), self.t.app(conditional_idx=em_results['conditional_idx'])
+
+        if self.sampler_hook is not None: self.t.add(**stop_sampling(*self.sampler_hook))
+
+        if do_pruning: self.t.add(**util.compute_hardbound(*self.t.getl('poff_vec', 'detected', 'vols_pinchoff'),
+                                                           *self.t.get('step_back', 'sub_origin', 'sub_bound')))
+
+        X_train_all, X_train, _ = util.merge_data(
+            *self.t.get('vols_pinchoff', 'detected', 'vols_pinchoff_axes', 'vols_detected_axes'))
+
+        if do_gpr: train_gpr(self.gpr, *self.t.get('sub_origin', 'sub_bound', 'd_r'), X_train,
+                             optimise=do_optim or self.t['changed_origin'])
+        self.timer.logtime()
+        if do_gpc: train_hgpc(self.gpc, self.t['vols_pinchoff'], unpack('conditional_idx', self.t['extra_measure']),
+                              self.t['gpc_list'], optimise=do_optim)
+        self.timer.logtime()
+
+        if self.sampler_hook is not None and do_gpr:
+            self.t.add(**project_samples_inside(self.gpr, *self.t.get('samples', 'sub_origin', 'real_ub', 'real_lb')))
+
+        self.timer.stop()
+        self.t['times'] = self.timer.times_list
+        self.t['iter'] += 1
+        #self.t.save(track=self.t['track'])
+
+        return self.t.getd(*self.t['verbose'])
+
     
 class Redo_sampler(Base_Sampler):
     
@@ -206,9 +366,9 @@ class Redo_sampler(Base_Sampler):
         self.t['iter'] += 1
         self.t.save(track=self.t['track'])
         return self.t.getd(*self.t['verbose'])
-    
-        
-def select_point(hypersurface, selection_model, origin, boundary_points, vols_pinchoff, directions, gpr_in_use=True, gpc_in_use=True):
+
+    # TODO: this
+def select_point(hypersurface, selection_model, origin, boundary_points, vols_pinchoff, directions, d_tooclose=100, gpr_in_use=True, gpc_in_use=True):
     """selects a point to investigate using thompson sampling, uniform sampling or random angles
     depending on use_selection flag or is no samples are present
     Args:
@@ -226,8 +386,7 @@ def select_point(hypersurface, selection_model, origin, boundary_points, vols_pi
     
     if len(boundary_points) > 0 and gpc_in_use:
         points_candidate = rw.project_crosses_to_boundary(boundary_points, hypersurface, origin)
-        print("points_candidate", points_candidate)
-        v = choose_next(points_candidate, vols_pinchoff, selection_model, d_tooclose = 20.)
+        v = choose_next(points_candidate, vols_pinchoff, selection_model, d_tooclose)
     elif len(boundary_points) != 0:
         v = rw.pick_from_boundary_points(boundary_points)
     else:
@@ -345,12 +504,24 @@ def choose_next(points_candidate, points_observed, gpc_dict, d_tooclose = 100.):
     points_observed = np.array(points_observed)
     if len(points_candidate) == 0: # No cadidate points
         return None, None, None
+    
+    # TODO: clean this up. Maybe use Euclidean distance rather than the axis method. ?
 
     # Exclude samples that are too close to observed points
     tooclose = np.any(
             np.all(np.fabs(points_candidate[:,np.newaxis,:] - points_observed[np.newaxis,...]) <= d_tooclose, axis=2),
             axis=1)
+
+    print(points_candidate.shape)
+    print(points_observed.shape)
+
+    #print("maximum distance", np.max(np.fabs(points_candidate[:,np.newaxis,:] - points_observed[np.newaxis,...])))
+    #print(np.mean(np.fabs(points_candidate[:,np.newaxis,:] - points_observed[np.newaxis,...])))
+
     nottooclose = np.logical_not(tooclose)
+
+    #print(nottooclose)
+    #print(np.sum(nottooclose))
 
     if np.sum(nottooclose) == 0: # All points are too close to observed points
         return None, None, None
