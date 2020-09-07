@@ -271,6 +271,8 @@ class anisotropic_scaling_ICP:
 
         self.get_initial_transform()
 
+        # just to init this attribute
+        self.error_converge = 1000
 
 
         print("First transform: ", self.transform)
@@ -286,8 +288,14 @@ class anisotropic_scaling_ICP:
 
 
     def get_initial_transform(self):
+        # Covariances of point clouds for initial estimation. See https://www.sciencedirect.com/science/article/pii/S1047320310000258
+
+        self.get_correspondences()
+
         Cq = np.cov(self.mover)
-        Cn = np.cov(self.source)
+        #Cn = np.cov(self.source)
+        Cn = np.cov(self.nns)
+
 
         eig_q = np.linalg.eig(Cq)[0]
         eig_n = np.linalg.eig(Cn)[0]
@@ -295,17 +303,30 @@ class anisotropic_scaling_ICP:
         lam = np.sqrt(eig_q)
         mu = np.sqrt(eig_n)
 
+        #print(lam)
+        #print(mu)
+
+        """
+        # broadcasting doesn't work if point clouds are not the same length
+        if len(mu) > len(lam):
+            mu_short = mu[0:len(lam)]
+            self.nu = 1 / len(lam) * np.sum(mu_short / lam)
+        else:
+            lam_short = lam[0:len(mu)]
+            self.nu = 1 / len(mu) * np.sum(mu / lam_short)
+        """
+
         self.nu = 1 / len(lam) * np.sum(mu / lam)
 
         self.delta = 0.1 * self.nu
 
-        s_01 = self.nu
-        s_02 = self.nu
-
         self.s_low_lim = 0.9 * self.nu
         self.s_high_lim = 1.1 * self.nu
 
-        self.transform = np.diag([s_01, s_02])
+        #self.transform = np.diag([s_01, s_02])
+        self.transform = np.diag([self.nu] * self.mover.shape[0])
+
+    # TODO: include gradient descent
 
     def iterate(self):
         self.x_guess = np.diagonal(self.transform)
@@ -315,10 +336,14 @@ class anisotropic_scaling_ICP:
         next_transform = np.diag(self.res.x)
         self.transform = self.transform @ next_transform
         self.mover = next_transform @ self.mover
+
+        if self.iters > 1:
+            self.error_converge = np.abs(self.error_track[self.iters] - self.error_track[self.iters - 1])
+
         self.iters += 1
 
     def ls(self, s_in):
-        S = np.diag([s_in[0], s_in[1]])
+        S = np.diag(s_in)
         output = np.sum(np.linalg.norm((S @ self.mover) - self.nns) ** 2)
         return output
 
@@ -328,7 +353,7 @@ class anisotropic_scaling_ICP:
         plt.plot(self.mover[0, :], self.mover[1, :], 'o', label="transformed")
 
         if plot_transform:
-            plt.plot((self.transform @ self.mover)[0, :], (self.transform @ self.mover)[1, :], 'o', label="initial transform",
+            plt.plot((self.transform @ self.mover)[0, :], (self.transform @ self.mover)[1, :], 'o', label="next transform",
                      alpha=0.6)
         plt.legend()
         plt.show()

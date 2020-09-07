@@ -57,15 +57,21 @@ def scaling_registration(pointset1, pointset2):
 
     icp = anisotropic_scaling_ICP(pointset1, pointset2)
 
+    # initialise with first iterate as some attributes are defined here
     icp.iterate()
 
     # TODO: Use convergence not absolute error
 
-    while icp.res.fun > 0.05 and icp.iters < 500:
+    while icp.error_converge > 1e-8 and icp.iters < 500:
         icp.iterate()
 
     plt.figure()
+    plt.title("Square error in ICP nearest neighbour by iteration")
+    plt.xlabel("Iteration")
+    plt.ylabel("Square error")
     plt.plot(icp.error_track)
     plt.show()
+
+    print("final transform:\n", icp.transform)
 
     return icp.transform

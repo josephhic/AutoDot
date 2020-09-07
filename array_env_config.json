@@ -4,7 +4,7 @@
 		"Crosstalk_matrix_box": {
 			"mean": 0,
 			"stdev": 0.5,
-			"max": [-1200, -1200, -1200, -1200, -1200]
+			"max": [-1000, -1000, -1000, -1000, -1000]
 		}
 	},
 	"dot_locations": [[0, 1]],
@@ -38,8 +38,8 @@
 
     "general": {
 	"directions": [-1.0, -1.0, -1.0],
-	"lb_box": [-2000, -2000, -2000, -2000, -2000],
-	"bound": [-2000, -2000, -2000, -2000, -2000],
+	"lb_box": [-3000, -3000, -3000, -3000, -3000],
+	"bound": [-3000, -3000, -3000, -3000, -3000],
 	"num_samples": 40,
 	"origin": [0, 0, 0, 0, 0],
 	"ub_box": [2000, 2000, 2000, 2000, 2000]},
@@ -47,9 +47,9 @@
 	"subsample": {
 	"sub_ndim": 2,
 	"sub_directions": [-1.0, -1.0],
-	"sub_lb_box": [-2000, -2000],
-	"sub_bound": [-2000, -2000],
-	"num_sub_samples": 30,
+	"sub_lb_box": [-3000, -3000],
+	"sub_bound": [-3000, -3000],
+	"num_sub_samples":30,
 	"sub_ub_box": [2000, 2000],
 	"sub_origin": [0, 0],
 	"d_tooclose": 2},
@@ -80,7 +80,7 @@
 
     "pruning": {
 	"pruning_stop": 30,
-	"pruning_on": true,
+	"pruning_on": false,
 	"step_back": 100},
 
     "sampling": {
