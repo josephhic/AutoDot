@@ -7,11 +7,12 @@ Created on Tue Nov 12 22:10:26 2019
 import sys
 import json
 from Sampler_factory import Paper_sampler, Subsampler
-from Investigation.Investigation_factory import Investigation_stage
+from Investigation.Investigation_factory import Investigation_stage, Mock_Investigation_stage
 from main_utils.utils import Timer, plot_conditional_idx_improvment
 from main_utils.model_surf_utils import show_gpr_gpc, show_dummy_device, show_dev_with_points
 from Playground.mock_device import build_mock_device_with_json, build_fake_device_with_json
 import numpy as np
+import perform_registration as pr
 
 
 def tune_with_pygor_from_file(config_file):
@@ -294,6 +295,85 @@ def show_device_shape(config_file):
     show_dev_with_points(device, configs)
 
     return device
+
+
+def subtune_routine(config_file, config_subset='subsample'):
+    with open(config_file) as f:
+        configs = json.load(f)
+
+    device = build_fake_device_with_json(configs['playground'])
+    sub_slice = 2
+
+    def sub_jump(params_sub):
+        params_full = np.asarray(device.params).squeeze()
+
+        params_full[:sub_slice] = params_sub
+        device.jump(params_full.squeeze())
+
+        return params_full
+
+    measure = device.measure
+    dots = device.fake_dots
+
+    plunger_gates = configs['plunger_gates']
+
+    check = lambda: device.check(plunger_gates)
+
+    def subroutine(config_subset, origin=None):
+        inv_timer = Timer()
+        investigation_stage = Mock_Investigation_stage(sub_jump, measure, check, configs, inv_timer, dots,
+                                                       start_params=device.params)
+        results, sampler = sub_tune(sub_jump, measure, investigation_stage, configs, config_subset, origin)
+        fields = ['vols_pinchoff', 'conditional_idx', 'origin']
+        p_offs = results['vols_pinchoff']
+        points = np.concatenate(p_offs).reshape(-1, 2)
+        return points
+
+    def move_and_measure(params, plot=False):
+        device.set_params(params)
+        print(device.params)
+        print("Moved to ", device.params)
+
+        points = np.array(subroutine(config_subset)).squeeze()
+
+        return points
+
+    ####################################################
+
+    # Voltage values at which gates will be measured
+    x = [0, -100 , -200, -450, -600]
+    #x = [0, -200, -400]
+
+    # Indices of gates to be measured
+    gates = [2, 3, 4]
+
+    full_points = []
+    transforms = []
+
+    for gate in gates:
+        out = []
+        voltages = [0] * device.n
+        for vol in x:
+            voltages[gate] = vol
+            print(voltages)
+            points = move_and_measure(voltages)
+            out.append(points)
+        full_points.append(out)
+
+    for gate_set in full_points:
+        out = []
+        for point_set in gate_set:
+            _transform = np.array(pr.scaling_registration(np.array(gate_set[0]).T, np.array(point_set).T))
+            out.append(_transform)
+        transforms.append(out)
+
+    val_x = [0, 0, -330, -39, -473]
+
+    val_points = move_and_measure(val_x)
+
+    validator = np.array(pr.scaling_registration(np.array(gate_set[0]).T, np.array(val_points).T))
+
+    return full_points, transforms, x, validator, val_points
 
 
 if __name__ == '__main__':

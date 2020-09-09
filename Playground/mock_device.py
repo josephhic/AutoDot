@@ -86,7 +86,7 @@ class Fake_CP_Device(Device):
         origin = np.array([0] * ndim) if origin is None else np.array(origin)
         dir = np.array([-1] * ndim) if dir is None else np.array(dir)
 
-
+        self.n = ndim
         # Negative dir preferred so flip signs
         dir = dir * -1
 
