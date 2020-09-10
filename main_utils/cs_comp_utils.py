@@ -58,6 +58,9 @@ gates = np.array([gate3, gate4, gate5])
 """
 
 def comp_matrix(gates, values):
+    if len(gates) != len(values):
+        raise ValueError("Different number of gate compensators and gate values")
+
     out = np.eye(gates[0].n)
 
     for gate, value in zip(gates, values):

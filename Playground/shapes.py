@@ -6,7 +6,7 @@ def L2_norm(x):
     return np.sqrt(np.sum(np.square(x), axis=-1))
 
 
-class Circle(object):
+class Circle(object):\
     def __init__(self, ndim, r=1000, origin=0.0):
         if np.isscalar(origin):
             self.origin = origin * np.ones(ndim)
