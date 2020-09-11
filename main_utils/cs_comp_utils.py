@@ -5,6 +5,46 @@ import numpy as np
 Right now this is a very slow way of doing it but I am just seeing if it works. 
 """
 
+class compensator:
+
+     def __init__(self, gate_comps):
+
+         # List of gate_comp objects
+         self.gate_comps = gate_comps
+
+         #self.comp_models = np.array(self.gate_comps)
+
+    def __call__(self, device_gate_vols):
+        # n-d array of gate voltages : device_gate_vols
+        # n-d array of functions : self.function
+
+        # get scale matrix output of each in self.function
+        output = [gate(value) for gate, value in zip(self.gate_comps, device_gate_vols)]
+
+        # multiply each matrix in the output
+
+        # return
+
+
+def comp_matrix(gates, values):
+    if len(gates) != len(values):
+        raise ValueError("Different number of gate compensators and gate values")
+
+    output = [gate(value) for gate, value in zip(gates, values)]
+
+
+
+
+    out = np.eye(gates[0].n)
+
+    for gate, value in zip(gates, values):
+        mat = gate(value)
+        out = out @ mat
+
+    return out
+
+
+
 class single_gate_comp:
 
     def __init__(self, x, y):
@@ -43,7 +83,7 @@ class gate_comp:
 
     def __call__(self, value):
 
-        # This is going to be too slow
+        # This is going to be slow
         return np.linalg.inv(np.diag([model(value)[0] for model in self.gate_models]))
 
 
@@ -60,6 +100,11 @@ gates = np.array([gate3, gate4, gate5])
 def comp_matrix(gates, values):
     if len(gates) != len(values):
         raise ValueError("Different number of gate compensators and gate values")
+
+    output = [gate(value) for gate, value in zip(gates, values)]
+
+
+
 
     out = np.eye(gates[0].n)
 
