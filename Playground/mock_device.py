@@ -70,6 +70,8 @@ class Device():
         return float(np.any([shape(self.sd(self.params)) for shape in self.shapes_list]))
         
     def check(self,idx=None):
+        print("idx: ", idx)
+        print(self.params.squeeze())
         return self.params.squeeze() if idx is None else self.params.squeeze()[idx]
     
     def arr_measure(self,params):

@@ -217,7 +217,7 @@ def tune(jump, measure, investigation_stage, configs):
     configs['investigation_stage_class'] = investigation_stage
     ps = Paper_sampler(configs)
     for i in range(configs['general']['num_samples']):
-        print("============### ITERATION %i ###============" % i)
+        print("============### ITERATION {} of {} ###============".format(i+1, configs['general']['num_samples']))
         results = ps.do_iter()
         for key, item in results.items():
             print("%s:" % (key), item[-1])
@@ -297,6 +297,8 @@ def show_device_shape(config_file):
     return device
 
 
+
+# Original way of doing this. It's not very good.
 def subtune_routine(config_file, config_subset='subsample'):
     with open(config_file) as f:
         configs = json.load(f)

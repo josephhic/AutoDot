@@ -67,6 +67,13 @@
 	    "kernal": "Matern52"}
 	},
 
+	"cs_compensation": {
+		"cs_gates": ["c4", "c5", "c6"],
+		"device_gates": ["c8", "c9", "c10", "c11", "c12", "c13", "c14"],
+		"characterisation_range": [0, 2000],
+		"ml_model": "scikit_linear"
+	},
+
     "gpr": {
 	"restarts": 5,
 	"factor_std": 2.0,
