@@ -4,7 +4,7 @@
 		"Crosstalk_box":{},
 		"Leakage":{}},
 	"ndim":3,
-        "plot":true},
+        "plot":false},
 
     "plunger_gates": [1,2],
     "save_dir":"mock_device_demo/",
@@ -42,6 +42,7 @@
 	"num_samples": 50,
 	"origin": [0,0,0],
 	"ub_box": [0, 0, 0]},
+	"d_tooclose": 10,
 
 
     "gpc": {
@@ -77,7 +78,7 @@
 	"n_part": 200, 
 	"sigma": 25},
 
-    "track": ["origin", "bound", "directions", "samples", "extra_measure", "d_vec","poff_vec", "meas_each_axis", "vols_each_axis", "conditional_idx","vols_pinchoff","detected","r_vals","poff_traces", "characterised_gate", "measurement"],
+    "track": ["origin", "bound", "directions", "samples", "extra_measure", "d_vec","poff_vec", "meas_each_axis", "vols_each_axis", "conditional_idx","vols_pinchoff","detected","r_vals","poff_traces"],
     "verbose": ["conditional_idx","vols_pinchoff","detected","r_vals"]
 }
 

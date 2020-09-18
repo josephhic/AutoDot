@@ -9,7 +9,7 @@
     "save_dir":"experiment_name/",
     "ip": "http://127.0.0.1:8000/RPC2",
     "characterisation_range": [0, 2000],
-    "characterisation_points": 10,
+    "characterisation_points": 6,
 
   "playground":{
 	"shapes":{
