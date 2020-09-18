@@ -5,11 +5,22 @@ from main_utils.utils import Timer, plot_conditional_idx_improvment
 import sys
 from tune import tune_with_pygor_from_file, tune_with_playground_from_file
 import pickle
+import perform_registration as pr
+
+
+# To run: data_dictionary = generate_cs_data_dict(config_file)
+# this data dictionary will also be saved to a file in the save dir
+
 
 
 # MODERN -----------
 
+
 def generate_cs_data_dict(config_file):
+    """
+    Runs the tuning algorithm multiple times to get hypersurface data under changing gate
+    values to determine their effect on the charge sensor.
+    """
 
     with open(config_file) as f:
         configs = json.load(f)
@@ -55,31 +66,30 @@ def generate_cs_data_dict(config_file):
                 break
 
 
-    return create_dict(output_files)
+    return create_dict(output_files, savename=(configs["save_dir"]+"data_dict"))
 
 
 def create_dict(output_files, savename="crosstalk_comp_data"):
-    data_dict = {}
-
     """
     Create data dictionary with the following format: 
 
     {gate_name: {gate_value: hypersurface poff data}}
     """
 
+    data_dict = {}
     for file in output_files:
         print(file)
         with open(file, 'rb') as f:
             data = pickle.load(f)
 
         if data["characterised_gate"] in data_dict:
-            data_dict[data["characterised_gate"]][data["gate_voltage"]] = data["vols_pinchoff"]
+            data_dict[data["characterised_gate"]][data["gate_voltage"]] = np.array(data["vols_pinchoff"])
 
         else:
-            data_dict[data["characterised_gate"]] = {data["gate_voltage"]: data["vols_pinchoff"]}
+            data_dict[data["characterised_gate"]] = {data["gate_voltage"]: np.array(data["vols_pinchoff"])}
 
-    with open((savename + '.pkl'), 'rb') as f:
-        pickle.dump(f)
+    with open((savename + '.pkl'), 'wb') as handle:
+        pickle.dump(data_dict, handle)
 
     return data_dict
 
@@ -96,14 +106,32 @@ def create_dense_cloud(data_dict):
 
     return np.array(dense_point_cloud)
 
-
+8
 
 def create_transform_dict(data_dict):
+    """
+    Creates a dictionary with the gates, voltages, and associated transforms from the data_dict
+    """
 
     gates_zero_cloud = create_dense_cloud(data_dict)
 
-    pass
+    transform_dict = {}
 
+    for gate in data_dict:
+        for vol in data_dict[gate]:
+            if gate in transform_dict:
+                transform_dict[gate][vol] = pr.scaling_registration(gates_zero_cloud.T, data_dict[gate][vol].T)
+
+            else:
+                transform_dict[gate] = {vol: pr.scaling_registration(gates_zero_cloud.T, data_dict[gate][vol].T)}
+
+    return transform_dict
+
+def create_models(transform_dict):
+
+
+
+    return # dict of models
 
 
 
