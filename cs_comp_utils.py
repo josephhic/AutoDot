@@ -89,6 +89,7 @@ def generate_cs_data_dict(config_file):
                 log.debug("TypeError, loop break. Moving on.")
                 break
 
+    log.info("ready to return")
     return create_dict(output_files, savename=(configs["save_dir"] + "data_dict"))
 
 
@@ -100,8 +101,11 @@ def create_dict(output_files, savename="crosstalk_comp_data"):
     """
 
     data_dict = {}
+    log.info("Data dict initialised.")
+
     for file in output_files:
-        print(file)
+        log.info("{} being added to data dictionary".formati(file))
+
         with open(file, 'rb') as f:
             data = pickle.load(f)
 
@@ -113,6 +117,7 @@ def create_dict(output_files, savename="crosstalk_comp_data"):
 
     with open((savename + '.pkl'), 'wb') as handle:
         pickle.dump(data_dict, handle)
+    log.info("Pickle info dumped.")
 
     return data_dict
 
@@ -131,7 +136,7 @@ def create_dense_cloud(data_dict):
     return np.array(dense_point_cloud)
 
 
-8
+
 
 
 def create_transform_dict(data_dict):
