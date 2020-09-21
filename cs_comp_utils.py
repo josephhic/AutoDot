@@ -70,7 +70,7 @@ def generate_cs_data_dict(config_file):
             log.info("Gate {} at {} for characterisation.".format(gate, measurement))
 
             try:
-                results, sampler = tune_with_playground_from_file(config_file)
+                results, sampler = tune_with_pygor_from_file(config_file)
                 log.debug("Tuning started for gate {} at {}".format(gate, measurement))
 
                 sampler.t.add(characterised_gate=gate, gate_voltage=measurement)
