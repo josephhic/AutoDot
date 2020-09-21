@@ -7,10 +7,16 @@ from tune import tune_with_pygor_from_file, tune_with_playground_from_file
 import pickle
 import perform_registration as pr
 
+import logging
+
+logging.basicConfig(format='%(asctime)s.%(msecs)03d  {%(module)s} [%(funcName)s] -- %(levelname)s: %(message)s',
+                    datefmt='%H:%M:%S',
+                    level=logging.DEBUG)
+log = logging.getLogger(__name__)
+
 
 # To run: data_dictionary = generate_cs_data_dict(config_file)
 # this data dictionary will also be saved to a file in the save dir
-
 
 
 # MODERN -----------
@@ -25,15 +31,21 @@ def generate_cs_data_dict(config_file):
     with open(config_file) as f:
         configs = json.load(f)
 
+    log.info("Configs loaded.")
+
     pygor_path = configs.get('path_to_pygor', None)
     if pygor_path is not None:
         sys.path.insert(0, pygor_path)
     import Pygor
     pygor = Pygor.Experiment(xmlip=configs.get('ip', None))
 
+    log.info("Pygor available to data generator")
+
     device_gates = configs["device_gates"]
     characterisation_range = configs["characterisation_range"]
     characterisation_points = configs['characterisation_points']
+
+    print(characterisation_range)
 
     measurements = np.linspace(characterisation_range[0], characterisation_range[1], characterisation_points)
 
@@ -41,32 +53,43 @@ def generate_cs_data_dict(config_file):
 
     for gate in device_gates:
 
+        log.info("Gate {} being characterised.".format(gate))
+
         pygor.setvals(device_gates, [0] * len(device_gates))
-        print("set: ", device_gates, [0] * len(device_gates))
+        log.info("set gates: {} to {}".format(device_gates, [0] * len(device_gates)))
 
         for measurement in measurements:
 
             save_name = str(gate) + "_" + str(measurement) + "_tuning.pkl"
             file_path = configs["save_dir"] + save_name
 
+            log.info("File to be saved at {}".format(file_path))
+
             print("setting: ", gate, measurement)
             pygor.setval(gate, measurement)
+            log.info("Gate {} at {} for characterisation.".format(gate, measurement))
 
             try:
                 results, sampler = tune_with_playground_from_file(config_file)
+                log.debug("Tuning started for gate {} at {}".format(gate, measurement))
+
                 sampler.t.add(characterised_gate=gate, gate_voltage=measurement)
                 sampler.t.app(track="characterised_gate")
                 sampler.t.app(track="gate_voltage")
+                log.info("Information added sampler and tracking")
+
                 sampler.t.save(track=sampler.t["track"], file_pth=file_path)
+                log.info("Sampling dictionary saved to {}".format(file_path))
+                
                 output_files.append(file_path)
-                print("run pygor.")
+                
+                log.debug("Loop completed.")
 
             except TypeError:
-                print("TypeError, loop break")
+                log.debug("TypeError, loop break. Moving on.")
                 break
 
-
-    return create_dict(output_files, savename=(configs["save_dir"]+"data_dict"))
+    return create_dict(output_files, savename=(configs["save_dir"] + "data_dict"))
 
 
 def create_dict(output_files, savename="crosstalk_comp_data"):
@@ -93,6 +116,7 @@ def create_dict(output_files, savename="crosstalk_comp_data"):
 
     return data_dict
 
+
 def create_dense_cloud(data_dict):
     """
     Creates a dense point cloud from the point sets where all gates are at zero, since there
@@ -106,7 +130,9 @@ def create_dense_cloud(data_dict):
 
     return np.array(dense_point_cloud)
 
+
 8
+
 
 def create_transform_dict(data_dict):
     """
@@ -127,12 +153,9 @@ def create_transform_dict(data_dict):
 
     return transform_dict
 
+
 def create_models(transform_dict):
-
-
-
-    return # dict of models
-
+    return  # dict of models
 
 
 # OLD  ------
@@ -152,6 +175,7 @@ class cs_compensation_model:
         self.ml_model = configs["scikit_linear"]
 
 """
+
 
 def cs_compensator_data(config_file, jump, measure, check):
     with open(config_file) as f:
@@ -175,7 +199,6 @@ def cs_compensator_data(config_file, jump, measure, check):
     gates = configs['gates']
     plunger_gates = configs['plunger_gates']
 
-
     def jump(params, plungers=False):
         # print(params)
         if plungers:
@@ -188,8 +211,6 @@ def cs_compensator_data(config_file, jump, measure, check):
     def measure():
         cvl = pygor.do0d()[chan_no][0]
         return cvl
-
-
 
     # -----------
 
@@ -222,16 +243,11 @@ class compensator:
 """
 
 
-
-
 def comp_matrix(gates, values):
     if len(gates) != len(values):
         raise ValueError("Different number of gate compensators and gate values")
 
     output = [gate(value) for gate, value in zip(gates, values)]
-
-
-
 
     out = np.eye(gates[0].n)
 
@@ -240,7 +256,6 @@ def comp_matrix(gates, values):
         out = out @ mat
 
     return out
-
 
 
 class single_gate_comp:
@@ -295,14 +310,12 @@ gate5 = gate_comp(cs_gates, x, np.array(transforms[2]))
 gates = np.array([gate3, gate4, gate5])
 """
 
+
 def comp_matrix(gates, values):
     if len(gates) != len(values):
         raise ValueError("Different number of gate compensators and gate values")
 
     output = [gate(value) for gate, value in zip(gates, values)]
-
-
-
 
     out = np.eye(gates[0].n)
 
