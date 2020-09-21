@@ -1,11 +1,11 @@
 from sklearn import linear_model
 import numpy as np
 import json
-from main_utils.utils import Timer, plot_conditional_idx_improvment
+from .main_utils.utils import Timer, plot_conditional_idx_improvment
 import sys
-from tune import tune_with_pygor_from_file, tune_with_playground_from_file
+from .tune import tune_with_pygor_from_file, tune_with_playground_from_file
 import pickle
-import perform_registration as pr
+from . import perform_registration as pr
 
 import logging
 
