@@ -3,7 +3,7 @@
 from . import shapes
 import numpy as np
 import logging
-from Playground.array_surface_utils import Fake_CP
+from ..Playground.array_surface_utils import Fake_CP
 
 
 logging.basicConfig(format='%(asctime)s.%(msecs)03d  {%(module)s} [%(funcName)s] -- %(levelname)s: %(message)s',
