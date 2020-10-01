@@ -156,7 +156,7 @@ class Paper_sampler(Base_Sampler):
      
         return self.t.getd(*self.t['verbose'])
     
-    
+"""    
 class Base_sub_sampler(Base_Sampler):
     # choose 'general' or 'subtune' or whatever to select which configs are loaded
     def __init__(self, configs, subsample_config):
@@ -321,7 +321,7 @@ class Subsampler(Base_sub_sampler):
         #self.t.save(track=self.t['track'])
 
         return self.t.getd(*self.t['verbose'])
-
+"""
     
 class Redo_sampler(Base_Sampler):
     
@@ -446,7 +446,9 @@ def stop_sampling(sampler,stopper,listener):
         unit vector
     """
     stopper.value = 1
+    print("we get to here")
     counter, samples, boundary_points = listener.recv()
+    print("do we get to here? ")
     sampler.join()
     print("STOP")
     return {'samples':samples,'boundary_points':boundary_points}

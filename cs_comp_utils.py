@@ -70,7 +70,8 @@ def generate_cs_data_dict(config_file):
             log.info("Gate {} at {} for characterisation.".format(gate, measurement))
 
             try:
-                results, sampler = tune_with_pygor_from_file(config_file)
+                results, sampler = tune_with_playground_from_file(config_file)
+
                 log.debug("Tuning started for gate {} at {}".format(gate, measurement))
 
                 sampler.t.add(characterised_gate=gate, gate_voltage=measurement)
@@ -104,7 +105,7 @@ def create_dict(output_files, savename="crosstalk_comp_data"):
     log.info("Data dict initialised.")
 
     for file in output_files:
-        log.info("{} being added to data dictionary".formati(file))
+        log.info("{} being added to data dictionary".format(file))
 
         with open(file, 'rb') as f:
             data = pickle.load(f)
@@ -287,6 +288,9 @@ class single_gate_comp:
 
 
 class gate_comp:
+    """
+    This is a full model of gate compensators.
+    """
 
     def __init__(self, cs_gates, x, single_gate_transforms):
         self.gate_models = []

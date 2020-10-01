@@ -6,7 +6,7 @@ Created on Tue Nov 12 22:10:26 2019
 """
 import sys
 import json
-from .Sampler_factory import Paper_sampler, Subsampler
+from .Sampler_factory import Paper_sampler #, Subsampler
 from .Investigation.Investigation_factory import Investigation_stage, Mock_Investigation_stage
 from .main_utils.utils import Timer, plot_conditional_idx_improvment
 from .main_utils.model_surf_utils import show_gpr_gpc, show_dummy_device, show_dev_with_points

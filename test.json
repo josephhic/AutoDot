@@ -16,7 +16,7 @@
     "save_dir":"experiment_name/",
     "ip": "http://127.0.0.1:8000/RPC2",
     "characterisation_range": [0, 2000],
-    "characterisation_points": 2,
+    "characterisation_points": 5,
 
     "investigation":{
 	"measurement_seq":["diag_trace","2d_lowres","2d_highres"],
@@ -48,14 +48,14 @@
 	"directions": [-1.0, -1.0, -1.0],
 	"lb_box": [-2000, -2000, -2000],
 	"bound": [-2000, -2000, -2000],
-	"num_samples": 5,
+	"num_samples": 50,
 	"origin": [0,0,0],
 	"ub_box": [0, 0, 0]},
 	"d_tooclose": 10,
 
 
     "gpc": {
-	"gpc_start": 10,
+	"gpc_start": 20,
 	"gpc_on": true,
 	"gpc_list": [true,true,false],
 	"configs": {
