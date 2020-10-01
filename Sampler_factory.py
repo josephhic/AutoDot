@@ -447,6 +447,7 @@ def stop_sampling(sampler,stopper,listener):
     """
     stopper.value = 1
     print("we get to here")
+    print(listener.__dict__)
     counter, samples, boundary_points = listener.recv()
     print("do we get to here? ")
     sampler.join()

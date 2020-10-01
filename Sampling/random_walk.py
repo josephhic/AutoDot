@@ -306,6 +306,7 @@ def get_full_data(u_all, tester, step_back, origin=0.0, penalty_non_poff=0.0, do
     poff_all = np.array(poff_all)
     return u_all, r_all, d_all, poff_all, detected_all, time_all, extra_meas_all
 
+"""
 # JDH addition
 def directed_random_points_inside(ndim, num_samples, gp_r, origin, lb, ub, directions):
     samples = directed_random_hypercube(lb, ub, num_samples, directions)
@@ -314,4 +315,4 @@ def directed_random_points_inside(ndim, num_samples, gp_r, origin, lb, ub, direc
         samples = project_points_to_inside(samples, gp_r, origin, 0.99)
 
     return samples
-
+"""
