@@ -401,10 +401,8 @@ def select_point(hypersurface, selection_model, origin, boundary_points, vols_pi
     return u.squeeze(), r_est.squeeze() if gpr_in_use else None
 
 
-
-
-
-def start_sampling(hypersurface,samples,origin,real_ub,real_lb,directions,n_part,sigma,max_steps,sampler_hook=None):
+def start_sampling(hypersurface, samples, origin, real_ub, real_lb, directions, n_part, sigma, max_steps,
+                   sampler_hook=None):
     """starts the sampling using multiprocessing while measurements are made on the device
     Args:
         hypersurface:  model of the hypersurface
@@ -421,17 +419,16 @@ def start_sampling(hypersurface,samples,origin,real_ub,real_lb,directions,n_part
     directions, origin = np.array(directions), np.array(origin)
     if samples is None:
         samples = rw.random_points_inside(len(origin), n_part, hypersurface, origin, real_lb, real_ub)
-        #print("S: ", samples,"O: ",origin)
-        #samples = (samples)*(-directions[np.newaxis,:])+origin#update sample directions with config directions
+        # print("S: ", samples,"O: ",origin)
+        # samples = (samples)*(-directions[np.newaxis,:])+origin#update sample directions with config directions
     sampler = rw.create_sampler(hypersurface, origin, real_lb, real_ub, sigma=sigma)
     stopper = multiprocessing.Value('i', 0)
     listener, sender = multiprocessing.Pipe(duplex=False)
-    sampler.reset(samples, max_steps=max_steps,stopper=stopper, result_sender=sender)
+    sampler.reset(samples, max_steps=max_steps, stopper=stopper, result_sender=sender)
     sampler.start()
-    #time.sleep(1)
-        
-    return sampler, stopper, listener
+    # time.sleep(1)
 
+    return sampler, stopper, listener
 def stop_sampling(sampler,stopper,listener):
     """selects a point to investigate using thompson sampling, uniform sampling or random angles
     depending on use_selection flag or is no cand_v are present
@@ -446,10 +443,7 @@ def stop_sampling(sampler,stopper,listener):
         unit vector
     """
     stopper.value = 1
-    print("we get to here")
-    print(listener.__dict__)
     counter, samples, boundary_points = listener.recv()
-    print("do we get to here? ")
     sampler.join()
     print("STOP")
     return {'samples':samples,'boundary_points':boundary_points}
