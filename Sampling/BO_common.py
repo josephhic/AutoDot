@@ -250,16 +250,6 @@ def random_hypercube(point_lb, point_ub, num_samples):
     #print(samples)
     return samples
 
-
-def directed_random_hypercube(point_lb, point_ub, num_samples, directions):
-    assert len(point_lb) == len(point_ub)
-    ndim = len(point_lb)
-
-    interval = point_ub - point_lb
-    offset = point_lb
-    samples = np.random.uniform(size=(num_samples,ndim))*interval[np.newaxis,:] + offset
-    return samples
-
 '''
 def random_hypercube(point_lb, point_ub, num_samples):
     assert len(point_lb) == len(point_ub)

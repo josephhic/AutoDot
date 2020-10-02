@@ -9,6 +9,7 @@
     "plunger_gates": [1,2],
     "save_dir":"mock_device_demo/",
 
+	"path_to_pygor": "/home/joseph/PycharmProjects/Pygor",
     "investigation":{
 	"measurement_seq":["diag_trace","2d_lowres","2d_highres"],
 	"cond_meas": [false,{ "quantile" : 0.85,  "min_thresh" : 0.001 },  false],

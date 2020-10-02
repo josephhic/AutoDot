@@ -19,6 +19,7 @@ def tune_with_pygor_from_file(config_file):
     with open(config_file) as f:
         configs = json.load(f)
 
+
     pygor_path = configs.get('path_to_pygor', None)
     if pygor_path is not None:
         sys.path.insert(0, pygor_path)

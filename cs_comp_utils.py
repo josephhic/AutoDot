@@ -34,6 +34,7 @@ def generate_cs_data_dict(config_file):
     log.info("Configs loaded.")
 
     pygor_path = configs.get('path_to_pygor', None)
+    print(pygor_path)
     if pygor_path is not None:
         sys.path.insert(0, pygor_path)
     import Pygor
@@ -91,6 +92,9 @@ def generate_cs_data_dict(config_file):
                 break
 
     log.info("ready to return")
+
+    # Return data in data dict format, function create_dict
+
     return create_dict(output_files, savename=(configs["save_dir"] + "data_dict"))
 
 
@@ -143,6 +147,8 @@ def create_dense_cloud(data_dict):
 def create_transform_dict(data_dict):
     """
     Creates a dictionary with the gates, voltages, and associated transforms from the data_dict
+
+    Uses dense cloud created from all point sets where device gates are at zero.
     """
 
     gates_zero_cloud = create_dense_cloud(data_dict)
@@ -161,6 +167,10 @@ def create_transform_dict(data_dict):
 
 
 def create_models(transform_dict):
+
+
+
+
     return  # dict of models
 
 
@@ -277,6 +287,9 @@ class single_gate_comp:
         self.x = np.array(x).reshape(-1, 1)
         self.y = y
 
+        self.train()
+
+
     def train(self):
         self.model.fit(self.x, self.y)
 
@@ -284,7 +297,36 @@ class single_gate_comp:
         return self.model.predict([[gate_voltage]])
 
     def __call__(self, gate_voltage):
-        return self.model.predict([[gate_voltage]])
+        return self.model.predict([[gate_voltage]])[0]
+
+class gate_cs_comp:
+
+    def __init__(self, x, ys):
+        """
+        Creates a full compensation scaling matrix for one device gate.
+
+        var xs: list of gate voltage values for which transformations have been made.
+                One list for each gate of the device.
+
+        var ys: array of NxN scaling matrices, N = CS gates (typically 3), for a gate-CS pair.
+                These matrices were made at each of the xs values.
+        """
+
+        indices = range(len(ys[0]))
+
+        self.compensation_models = []
+
+        # each index here extracts a value from the scaling matrices. The e.g. 0,0 position is
+        # the scaling for the first cs gate, the 1,1 is for the second, and 2,2 is for the third.
+
+        for index in indices:
+            self.compensation_models.append(single_gate_comp(x, ys[:, index, index]))
+
+        print(self.compensation_models)
+
+    def __call__(self, value):
+        return np.diag([model.__call__(value) for model in self.compensation_models])
+
 
 
 class gate_comp:
