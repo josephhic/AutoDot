@@ -18,6 +18,7 @@ log = logging.getLogger(__name__)
 # To run: data_dictionary = generate_cs_data_dict(config_file)
 # this data dictionary will also be saved to a file in the save dir
 
+# this needs refactoring!
 
 # MODERN -----------
 
@@ -82,9 +83,9 @@ def generate_cs_data_dict(config_file):
 
                 sampler.t.save(track=sampler.t["track"], file_pth=file_path)
                 log.info("Sampling dictionary saved to {}".format(file_path))
-                
+
                 output_files.append(file_path)
-                
+
                 log.debug("Loop completed.")
 
             except TypeError:
@@ -96,6 +97,8 @@ def generate_cs_data_dict(config_file):
     # Return data in data dict format, function create_dict
 
     return create_dict(output_files, savename=(configs["save_dir"] + "data_dict"))
+
+
 
 
 def create_dict(output_files, savename="crosstalk_comp_data"):
@@ -141,9 +144,6 @@ def create_dense_cloud(data_dict):
     return np.array(dense_point_cloud)
 
 
-
-
-
 def create_transform_dict(data_dict):
     """
     Creates a dictionary with the gates, voltages, and associated transforms from the data_dict
@@ -164,17 +164,6 @@ def create_transform_dict(data_dict):
                 transform_dict[gate] = {vol: pr.scaling_registration(gates_zero_cloud.T, data_dict[gate][vol].T)}
 
     return transform_dict
-
-
-def create_models(transform_dict):
-
-
-
-
-    return  # dict of models
-
-
-# OLD  ------
 
 
 """
@@ -289,7 +278,6 @@ class single_gate_comp:
 
         self.train()
 
-
     def train(self):
         self.model.fit(self.x, self.y)
 
@@ -298,6 +286,7 @@ class single_gate_comp:
 
     def __call__(self, gate_voltage):
         return self.model.predict([[gate_voltage]])[0]
+
 
 class gate_cs_comp:
 
@@ -322,12 +311,38 @@ class gate_cs_comp:
         for index in indices:
             self.compensation_models.append(single_gate_comp(x, ys[:, index, index]))
 
-        print(self.compensation_models)
-
     def __call__(self, value):
         return np.diag([model.__call__(value) for model in self.compensation_models])
 
 
+def cs_compensation(config_file):
+    """
+    Full routine using all these methods and classes to create a compensation
+    dictionary for the charge sensor.
+    """
+
+    with open(config_file) as f:
+        configs = json.load(f)
+
+    # create the data dictionary
+    data_dict = generate_cs_data_dict(config_file)
+
+    # turn that data dictionary into a dict with transforms in 
+    transform_dict = create_transform_dict(data_dict)
+
+    device_gates = configs['device_gates']
+    cs_gates = configs['gates']
+
+    gate_compensations = {}
+
+    for gate in device_gates:
+        gate_compensations[gate] = gate_cs_comp(list(transform_dict[gate].keys()),
+                                                np.array(list(transform_dict[gate].values())))
+
+    return gate_compensations
+
+
+# -------
 
 class gate_comp:
     """
