@@ -48,7 +48,7 @@
 	"directions": [-1.0, -1.0, -1.0],
 	"lb_box": [-2000, -2000, -2000],
 	"bound": [-2000, -2000, -2000],
-	"num_samples": 10,
+	"num_samples": 100,
 	"origin": [0,0,0],
 	"ub_box": [0, 0, 0]},
 	"d_tooclose": 10,
