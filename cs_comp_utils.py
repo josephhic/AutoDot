@@ -315,6 +315,7 @@ class gate_cs_comp:
         return np.diag([model.__call__(value) for model in self.compensation_models])
 
 
+# This is the fully wrapped final version
 def cs_compensation(config_file):
     """
     Full routine using all these methods and classes to create a compensation
@@ -339,7 +340,66 @@ def cs_compensation(config_file):
         gate_compensations[gate] = gate_cs_comp(list(transform_dict[gate].keys()),
                                                 np.array(list(transform_dict[gate].values())))
 
+    with open("cs_compensation_output.pkl", "w") as handler:
+        pickle.dump(gate_compensations, handler, pickle.HIGHEST_PROTOCOL)
+
     return gate_compensations
+
+def cs_compensation_from_dict(data_dict, config_file):
+    """
+    Full routine using all these methods and classes to create a compensation
+    dictionary for the charge sensor.
+
+    FROM DATA DICT - load saved file
+    """
+
+    with open(config_file) as f:
+        configs = json.load(f)
+
+    # turn that data dictionary into a dict with transforms in
+    transform_dict = create_transform_dict(data_dict)
+
+    device_gates = configs['device_gates']
+    cs_gates = configs['gates']
+
+    gate_compensations = {}
+
+    for gate in device_gates:
+        gate_compensations[gate] = gate_cs_comp(list(transform_dict[gate].keys()),
+                                                np.array(list(transform_dict[gate].values())))
+
+    with open("cs_compensation_output.pkl", "wb") as handler:
+        pickle.dump(gate_compensations, handler, pickle.HIGHEST_PROTOCOL)
+
+    return gate_compensations
+
+
+def pretty_plot_transforms(transform_dict, gate): 
+    import matplotlib.pyplot as plt 
+    import numpy as np 
+    
+    #plotting parameters
+    plt.rcParams['figure.figsize'] = [12,7]
+    plt.rcParams['font.size'] = 22
+    plt.rcParams["font.weight"] = "700"
+    plt.rcParams["axes.labelweight"] = "bold"
+
+
+    data = transform_dict[gate]
+
+    plt.figure()
+    plt.plot(list(data.keys()), np.array(list(data.values()))[:, 0, 0], label="CS barrier 1")
+    plt.plot(list(data.keys()), np.array(list(data.values()))[:, 1, 1], label="CS barrier 2")
+    
+    plt.legend()
+
+    plt.xlabel("{} gate voltage [mV]".format(gate))
+    plt.ylabel("CS gate scaling value")
+    plt.title("Affect of gate {} on charge sensor gates".format(gate))
+
+    plt.xlim(list(data.keys())[0], list(data.keys())[-1])
+
+    plt.show()
 
 
 # -------
